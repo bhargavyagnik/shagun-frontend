@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Gift, User2, Wallet } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
+import { apiClient } from "@/lib/api";
 
 export function CreateEventForm() {
   const [formData, setFormData] = useState({
@@ -16,6 +17,22 @@ export function CreateEventForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      const response = await apiClient('/events/addevent', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+
+      if (response.data) {
+        // Handle successful event creation
+        console.log('Event created successfully:', response.data);
+      } else {
+        // Handle error
+        console.error('Failed to create event:', response.error);
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+    }
     // Handle form submission
     // Generate unique link and QR code
     // Save to database
