@@ -32,24 +32,30 @@ export function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    const response = await apiClient<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(formData),
-    });
-
-    if (response.data) {
-      login(response.data.token, response.data.user);
-      router.push('/dashboard');
-    } else {
-      setError(response.error || 'An error occurred');
-    }
     
-    setLoading(false);
+    try {
+
+      const response = await apiClient<LoginResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+  
+      if (response.data) {
+        await login(response.data.token, response.data.user);
+        router.push('/dashboard');
+      } else {
+        setError(response.error || 'An error occurred');
+      }
+    } catch (error) {
+      setError('Failed to login. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -20,6 +20,7 @@ interface ApiResponse<T> {
   
       const response = await fetch(`${baseUrl}${endpoint}`, {
         ...options,
+        credentials: 'include',
         headers,
       });
   
