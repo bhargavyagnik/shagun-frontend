@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { EventDetails } from "@/components/dashboard/event-details";
-import { mockEvents, mockContributions } from "@/lib/mock-data";
+import { mockEvents } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2 } from "lucide-react";
 import Link from "next/link";
 
 export default function EventViewPage({ params }: { params: { eventId: string } }) {
   const event = mockEvents.find(e => e.id === params.eventId);
-  const contributions = mockContributions[params.eventId as keyof typeof mockContributions] || [];
 
   if (!event) {
     return <div>Event not found</div>;

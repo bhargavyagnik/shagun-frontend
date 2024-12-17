@@ -1,38 +1,55 @@
+'use client';
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { LogIn, Mail, Lock } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api";
+import { Alert } from "../ui/alert";
+import { LoadingButton } from "../ui/loading-button";
 
+interface LoginResponse {
+  token: string;
+  user: {
+    uid: string;
+    name: string;
+    email: string;
+  };
+  message: string;
+}
 export function LoginForm() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
+  const { login } = useAuth();
+  const router = useRouter();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement login logic
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+    setError('');
+    setLoading(true);
 
-      if (response.ok) {
-        // Redirect to dashboard or home page
-        window.location.href = '/dashboard';
-      } else {
-        // Handle error
-        console.error('Login failed');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
+    const response = await apiClient<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(formData),
+    });
+
+    if (response.data) {
+      login(response.data.token, response.data.user);
+      router.push('/dashboard');
+    } else {
+      setError(response.error || 'An error occurred');
     }
+    
+    setLoading(false);
   };
 
   return (
@@ -49,6 +66,8 @@ export function LoginForm() {
           Sign in to manage your digital shagun collection
         </p>
       </div>
+
+      {error && <Alert type="error" message={error} />}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
@@ -83,14 +102,16 @@ export function LoginForm() {
           />
         </div>
 
-        <Button
+        <LoadingButton
           type="submit"
           className="w-full bg-gradient-to-r from-pink-500 to-rose-500"
+          loading={loading}
+          loadingText="Signing in..."
         >
           <LogIn className="mr-2 h-4 w-4" />
           Sign In
-        </Button>
-
+        </LoadingButton>
+          
         <p className="text-center text-sm text-muted-foreground mt-4">
           Don't have an account?{" "}
           <Link href="/signup" className="text-primary hover:underline">

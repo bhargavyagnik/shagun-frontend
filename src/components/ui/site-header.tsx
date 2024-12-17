@@ -83,7 +83,7 @@ export function SiteHeader() {
                   className="text-rose-500 hover:text-rose-600 hover:border-rose-500/50"
                   asChild
                 >
-                  <Link href="/logout">Logout</Link>
+                  <Link href="/">Logout</Link>
                 </Button>
               </>
             ) : (
