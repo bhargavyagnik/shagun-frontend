@@ -15,14 +15,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState(null);
-  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
 
   useEffect(() => {
     // Check for stored token on mount
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
+    setIsAuthenticated(!!user);
     if (token && userData) {
       setUser(JSON.parse(userData));
+      
     }
   }, []);
 
@@ -42,13 +45,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({ idToken: token }) // Match backend expectation of 'idToken'
       });
+      setIsAuthenticated(true);
 
-      if (response.data) {
+      if (!response.data) {
         // Store token only after successful session creation
-        localStorage.setItem('token', token);
-      } else {
+        setUser(null)
         throw new Error(response.error || 'Failed to create session');
-      }
+       
+      } 
     } catch (error) {
       console.error('Failed to create session:', error);
       // Clean up if session creation fails
@@ -58,15 +62,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    router.push('/login');
+  const logout = async () => {
+
+    try{
+      const response = await apiClient('/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+        setIsAuthenticated(false);
+       
+        window.location.href = '/login';
+
+      
+    }catch(error){
+      console.error('Failed to logout:', error);
+      window.location.href = '/login';
+    }
+    
+    
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
