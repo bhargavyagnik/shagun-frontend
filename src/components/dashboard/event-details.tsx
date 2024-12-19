@@ -9,9 +9,9 @@ import { apiClient } from "@/lib/api";
 
 interface Contribution {
   id: string;
+  name:string;
   amount: number;
   relation: "bride" | "groom";
-  contributorName: string;
   message?: string;
   createdAt: {
     _seconds: number;
@@ -20,7 +20,6 @@ interface Contribution {
 }
 
 interface ContributionsResponse {
-  success: boolean;
   contributions: Contribution[];
 }
 
@@ -57,13 +56,13 @@ export function EventDetails({
     async function fetchContributions() {
       try {
         setIsLoading(true);
-        const response = await apiClient<ContributionsResponse>(`/contributions/get/`, {
+        console.log(eventId);
+        const response = await apiClient<ContributionsResponse>(`/contributions/get/${eventId}`, {
           method: "GET",
-          credentials: "include",
-          body:JSON.stringify({"eventId":eventId})
+          credentials: "include"
         });
         console.log(response);
-        if (response.data && response.data.success) {
+        if (response.data) {
           setContributions(response.data.contributions);
         } else {
           setError("Failed to fetch contributions");
@@ -77,14 +76,13 @@ export function EventDetails({
     }
 
     fetchContributions();
-  }, [eventId]);
-
+  }, []);
   const totalAmount = contributions.reduce((sum, c) => sum + c.amount, 0);
   const bridesSideAmount = contributions
     .filter(c => c.relation === "bride")
     .reduce((sum, c) => sum + c.amount, 0);
   const groomsSideAmount = contributions
-    .filter(c => c.relation === "groom")
+   .filter(c => c.relation === "groom")
     .reduce((sum, c) => sum + c.amount, 0);
 
   if (isLoading) {

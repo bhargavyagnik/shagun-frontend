@@ -8,15 +8,19 @@ import {
 
 interface Contribution {
   id: string;
-  name: string;
+  name:string;
   amount: number;
-  message: string;
-  date: string;
   relation: "bride" | "groom";
+  message?: string;
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
 }
 
 export function ContributionsTable({ contributions }: { contributions: Contribution[] }) {
-  const [sortField, setSortField] = useState<keyof Contribution>("date");
+  type SortableFields = keyof Contribution | "createdAt._seconds";  // Add nested field
+  const [sortField, setSortField] = useState<SortableFields>("createdAt._seconds");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [filters, setFilters] = useState({
     search: "",
@@ -25,8 +29,7 @@ export function ContributionsTable({ contributions }: { contributions: Contribut
 
   const filteredContributions = contributions
     .filter((contribution) => {
-      const matchesSearch = contribution.name
-        .toLowerCase()
+      const matchesSearch = contribution.name?.toLowerCase()
         .includes(filters.search.toLowerCase());
       const matchesRelation = 
         filters.relation === "all" || 
@@ -91,7 +94,7 @@ export function ContributionsTable({ contributions }: { contributions: Contribut
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  {new Date(contribution.date).toLocaleDateString()}
+                  {new Date(contribution.createdAt._seconds).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3 max-w-xs truncate">{contribution.message}</td>
               </tr>

@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from "@/lib/api";
+import { cookies } from 'next/headers';
+
 
 interface AuthContextType {
   user: any | null;
@@ -20,13 +22,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check for stored token on mount
-    const token = localStorage.getItem('token');
+    const token = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('session='))
+    ?.split('=')[1];
     const userData = localStorage.getItem('user');
-    if (token && userData) {
+    console.log(userData);
+    if (token) {
       setUser(JSON.parse(userData));
       setIsAuthenticated(true);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const login = async (token: string, userData: any) => {
     // First store user data
@@ -69,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: 'include',
       });
       
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
         setIsAuthenticated(false);

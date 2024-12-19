@@ -47,9 +47,12 @@ export default function DashboardPage() {
           method: "GET",
           credentials: "include",
         });
-        if (response.data) {
+        if ((response.status==200 || response.status==201) && response.data) {
           setAllEvents(response.data.events);
-        } else {
+        } else if(response.status==401){
+          router.push("/login");
+        }
+        else{
           console.error("Failed to fetch events:", response.data);
         }
       } catch (error) {
