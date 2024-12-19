@@ -1,17 +1,84 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { User2, IndianRupee, Share2, Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { mockContributions, mockEvents } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { ContributionsTable } from "./contributions-table";
+import { apiClient } from "@/lib/api";
 
-export function EventDetails({ eventId }: { eventId: string }) {
-  const event = mockEvents.find(e => e.id === eventId);
-  const contributions = mockContributions[eventId as keyof typeof mockContributions] || [];
-  
+interface Contribution {
+  id: string;
+  amount: number;
+  relation: "bride" | "groom";
+  contributorName: string;
+  message?: string;
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+}
+
+interface ContributionsResponse {
+  success: boolean;
+  contributions: Contribution[];
+}
+
+interface Event {
+  id: string;
+  occasionType: string;
+  brideName: string;
+  groomName: string;
+  eventDate: string;
+  upiId: string;
+  userId: string;
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  updatedAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+}
+
+export function EventDetails({ 
+  eventId,
+  event 
+}: { 
+  eventId: string;
+  event: Event;
+}) {
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchContributions() {
+      try {
+        setIsLoading(true);
+        const response = await apiClient<ContributionsResponse>(`/contributions/get/`, {
+          method: "GET",
+          credentials: "include",
+          body:JSON.stringify({"eventId":eventId})
+        });
+        console.log(response);
+        if (response.data && response.data.success) {
+          setContributions(response.data.contributions);
+        } else {
+          setError("Failed to fetch contributions");
+        }
+      } catch (error) {
+        setError("Error fetching contributions");
+        console.error("Error fetching contributions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchContributions();
+  }, [eventId]);
+
   const totalAmount = contributions.reduce((sum, c) => sum + c.amount, 0);
   const bridesSideAmount = contributions
     .filter(c => c.relation === "bride")
@@ -20,11 +87,24 @@ export function EventDetails({ eventId }: { eventId: string }) {
     .filter(c => c.relation === "groom")
     .reduce((sum, c) => sum + c.amount, 0);
 
-  if (!event) return null;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-      {/* Event Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">
           {event.brideName} & {event.groomName}
@@ -38,7 +118,6 @@ export function EventDetails({ eventId }: { eventId: string }) {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SummaryCard
           label="Total Collection"
@@ -60,7 +139,6 @@ export function EventDetails({ eventId }: { eventId: string }) {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex gap-4">
         <Button variant="outline">
           <Share2 className="h-4 w-4 mr-2" />
@@ -72,7 +150,6 @@ export function EventDetails({ eventId }: { eventId: string }) {
         </Button>
       </div>
 
-      {/* Contributions Table */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Contributions</h2>
         <ContributionsTable contributions={contributions} />

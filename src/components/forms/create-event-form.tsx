@@ -1,12 +1,22 @@
-
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Gift, User2, Wallet } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
 import { apiClient } from "@/lib/api";
+import { useRouter } from "next/navigation";
+
+// Define the interface for the expected response data
+interface EventResponse {
+  eventId: string;
+  response:string;
+  success:Boolean;
+  // Add other properties as needed
+}
 
 export function CreateEventForm() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     occasionType: "wedding",
     brideName: "",
@@ -23,11 +33,16 @@ export function CreateEventForm() {
         body: JSON.stringify(formData),
       });
 
-      if (response.data) {
-        // Handle successful event creation
-        console.log('Event created successfully:', response.data);
+      // Assert the type of response.data
+      const data = response.data as EventResponse;
+
+      if (response.status === 200 || response.status === 201) {
+        console.log('Event created successfully:', data);
+        router.push(`/dashboard/events/${data.eventId}`);
+      } 
+      else if (response.status === 401) {
+        router.push('/login');
       } else {
-        // Handle error
         console.error('Failed to create event:', response.error);
       }
     } catch (error) {
