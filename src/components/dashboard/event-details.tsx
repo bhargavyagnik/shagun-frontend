@@ -31,6 +31,8 @@ interface Event {
   eventDate: string;
   upiId: string;
   userId: string;
+  totalAmount: number;
+  contributionsCount: number;
   createdAt: {
     _seconds: number;
     _nanoseconds: number;

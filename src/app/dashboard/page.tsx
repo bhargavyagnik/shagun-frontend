@@ -19,6 +19,8 @@ interface Event {
   eventDate: string;
   upiId: string;
   userId: string;
+  totalAmount: number;
+  contributionsCount: number;
   createdAt: {
     _seconds: number;
     _nanoseconds: number;
@@ -28,7 +30,6 @@ interface Event {
     _nanoseconds: number;
   };
 }
-
 interface GetAllResponse {
   success: boolean;
   events: Event[];
@@ -73,8 +74,8 @@ export default function DashboardPage() {
       if (sortBy === "date") {
         return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
       }
-      return 10000;
-      // return b.totalAmount - a.totalAmount;
+      // return 10000;
+      return b.totalAmount - a.totalAmount;
     });
 
   return (

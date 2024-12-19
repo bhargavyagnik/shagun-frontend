@@ -5,11 +5,22 @@ import { formatDate } from "@/lib/utils";
 interface EventCardProps {
   event: {
     id: string;
-    brideName: string;
-    groomName: string;
-    eventDate: string;
-    totalAmount: number;
-    contributionsCount: number;
+  occasionType: string;
+  brideName: string;
+  groomName: string;
+  eventDate: string;
+  upiId: string;
+  userId: string;
+  totalAmount: number;
+  contributionsCount: number;
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  updatedAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
   };
   onClick: () => void;
 }
@@ -36,7 +47,7 @@ export function EventCard({ event, onClick }: EventCardProps) {
           <div className="flex items-center gap-2 text-muted-foreground">
             <IndianRupee className="h-4 w-4" />
             <span className="font-medium text-foreground">
-              {/* ₹{event.totalAmount.toLocaleString()} */}
+              ₹{event.totalAmount.toLocaleString()}
             </span>
             collected
           </div>
