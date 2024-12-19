@@ -4,6 +4,19 @@ import { motion } from "framer-motion";
 import { UserPlus, Mail, Lock, User } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
 import Link from "next/link";
+import { apiClient } from "@/lib/api";
+import { Alert } from "../ui/alert";
+import { useRouter } from "next/navigation";
+
+interface SignupResponse {
+  token: string;
+  user: {
+    uid: string;
+    name: string;
+    email: string;
+  };
+  message: string;
+}
 
 export function SignupForm() {
   const [formData, setFormData] = useState({
@@ -12,6 +25,9 @@ export function SignupForm() {
     password: "",
     confirmPassword: "",
   });
+  const router = useRouter();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +37,7 @@ export function SignupForm() {
     }
 
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await apiClient<SignupResponse>('/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,15 +45,15 @@ export function SignupForm() {
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        // Redirect to login page
-        window.location.href = '/login';
+      if (response.data) {
+        router.push('/login?message=verification_email_sent');
       } else {
-        // Handle error
-        console.error('Signup failed');
+        setError(response.error || 'An error occurred');
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      setError('Failed to login. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,7 +71,7 @@ export function SignupForm() {
           Join Shagun to start collecting digital gifts
         </p>
       </div>
-
+      {error && <Alert type="error" message={error} />}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium flex items-center gap-2">

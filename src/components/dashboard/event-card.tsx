@@ -36,7 +36,7 @@ export function EventCard({ event, onClick }: EventCardProps) {
           <div className="flex items-center gap-2 text-muted-foreground">
             <IndianRupee className="h-4 w-4" />
             <span className="font-medium text-foreground">
-              ₹{event.totalAmount.toLocaleString()}
+              {/* ₹{event.totalAmount.toLocaleString()} */}
             </span>
             collected
           </div>

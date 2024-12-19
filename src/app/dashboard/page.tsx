@@ -1,21 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GradientText } from "@/components/ui/gradient-text";
 import { EventCard } from "@/components/dashboard/event-card";
 import { mockEvents } from "@/lib/mock-data";
+import { apiClient } from "@/lib/api";
 import { Plus, Calendar, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+interface Event {
+  id: string;
+  occasionType: string;
+  brideName: string;
+  groomName: string;
+  eventDate: string;
+  upiId: string;
+  userId: string;
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  updatedAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+}
+
+interface GetAllResponse {
+  success: boolean;
+  events: Event[];
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("date");
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const response = await apiClient<GetAllResponse>("/events/getall/", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (response.data) {
+          setAllEvents(response.data.events);
+        } else {
+          console.error("Failed to fetch events:", response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    }
 
-  const filteredEvents = mockEvents
+    fetchEvents();
+  }, []);
+
+
+  const filteredEvents = allEvents
     .filter(event => 
       event.brideName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.groomName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -24,7 +70,8 @@ export default function DashboardPage() {
       if (sortBy === "date") {
         return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
       }
-      return b.totalAmount - a.totalAmount;
+      return 10000;
+      // return b.totalAmount - a.totalAmount;
     });
 
   return (

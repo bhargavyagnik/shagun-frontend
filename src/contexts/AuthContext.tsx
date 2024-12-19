@@ -22,10 +22,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check for stored token on mount
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    setIsAuthenticated(!!user);
     if (token && userData) {
       setUser(JSON.parse(userData));
-      
+      setIsAuthenticated(true);
     }
   }, []);
 
