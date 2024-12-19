@@ -5,46 +5,48 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { X, Menu, Gift } from "lucide-react";
+import { X, Menu, LogOut } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export function SiteHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-  
-  const isLandingPage = pathname === "/";
-  const isAuthenticatedRoute = pathname.includes("/dashboard") || 
-    pathname.includes("/create") || 
-    pathname === "/profile";
+  const { user, logout, isAuthenticated } = useAuth();
 
+  const router = useRouter();
+
+  console.log(isAuthenticated)
+  // Handle scroll effect
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    setIsMobileMenuOpen(false); // Close mobile menu
+    router.refresh(); // Force refresh the page
+  };
+  // Determine current route type
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
 
   return (
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       className={`sticky top-0 z-50 w-full border-b backdrop-blur-lg transition-all duration-200 ${
-        scrolled 
-          ? "bg-background/80 shadow-sm" 
-          : "bg-background/60"
+        scrolled ? "bg-background/80 shadow-sm" : "bg-background/60"
       }`}
     >
       <div className="container max-w-7xl mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Link href="/" className="flex items-center space-x-2 hover:opacity-90">
-              {/* <Gift className="h-6 w-6 text-primary" /> */}
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link href="/" className="flex items-center space-x-2">
               <span className="font-bold text-xl">
                 <GradientText>Shagun</GradientText>
               </span>
@@ -52,47 +54,34 @@ export function SiteHeader() {
           </motion.div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            {isLandingPage ? (
+          <div className="hidden md:flex items-center space-x-4">
+            {isAuthenticated ? (
               <>
-                <Button variant="ghost" className="hover:bg-primary/5" asChild>
-                  <Link href="/login">Login</Link>
-                </Button>
-                <motion.div 
-                  whileHover={{ scale: 1.05 }} 
-                  whileTap={{ scale: 0.95 }}
+                <Link href="/dashboard">
+                  <Button variant="ghost">Dashboard</Button>
+                </Link>
+                <Button
+                  variant="ghost"
+                  onClick={handleLogout}
+                  className="flex items-center gap-2"
                 >
-                  <Button 
-                    asChild 
-                    className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-md hover:shadow-lg hover:shadow-pink-500/20 transition-all duration-300"
-                  >
-                    <Link href="/create">Create Event</Link>
-                  </Button>
-                </motion.div>
-              </>
-            ) : isAuthenticatedRoute ? (
-              <>
-                {/* <Button variant="ghost" className="hover:bg-primary/5" asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button> */}
-                {/* <Button variant="ghost" className="hover:bg-primary/5" asChild>
-                  <Link href="/create">Create Event</Link>
-                </Button> */}
-                <Button 
-                  variant="outline"
-                  className="text-rose-500 hover:text-rose-600 hover:border-rose-500/50"
-                  asChild
-                >
-                  <Link href="/">Logout</Link>
+                  <LogOut className="h-4 w-4" />
+                  Logout
                 </Button>
               </>
             ) : (
-              <Button 
-                asChild 
-                className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
-              >
-                <Link href="/">Back to Home</Link>
-              </Button>
+              !isAuthPage && (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost">Login</Button>
+                  </Link>
+                  <Link href="/signup">
+                    <Button className="bg-gradient-to-r from-pink-500 to-rose-500">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              )
             )}
           </div>
 
@@ -114,48 +103,51 @@ export function SiteHeader() {
       {/* Mobile Menu */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
-        animate={{ 
+        animate={{
           opacity: isMobileMenuOpen ? 1 : 0,
-          y: isMobileMenuOpen ? 0 : -20 
+          y: isMobileMenuOpen ? 0 : -20,
         }}
-        className={`md:hidden border-t ${isMobileMenuOpen ? 'block' : 'hidden'}`}
+        className={`md:hidden border-t ${isMobileMenuOpen ? "block" : "hidden"}`}
       >
         <div className="container py-4 space-y-3">
-          {isLandingPage ? (
+          {isAuthenticated ? (
             <>
-              <Button variant="ghost" className="w-full justify-start" asChild>
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button 
-                className="w-full justify-start bg-gradient-to-r from-pink-500 to-rose-500" 
-                asChild
+              <Link href="/dashboard">
+                <Button variant="ghost" className="w-full justify-start">
+                  Dashboard
+                </Button>
+              </Link>
+              <Link href="/create">
+                <Button variant="ghost" className="w-full justify-start">
+                  Create Event
+                </Button>
+              </Link>
+              <Button
+                variant="ghost"
+                onClick={logout}
+                className="w-full justify-start"
               >
-                <Link href="/create">Create Event</Link>
-              </Button>
-            </>
-          ) : isAuthenticatedRoute ? (
-            <>
-              <Button variant="ghost" className="w-full justify-start" asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-              <Button variant="ghost" className="w-full justify-start" asChild>
-                <Link href="/create">Create Event</Link>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start text-rose-500 hover:text-rose-600"
-                asChild
-              >
-                <Link href="/logout">Logout</Link>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
               </Button>
             </>
           ) : (
-            <Button 
-              className="w-full justify-start bg-gradient-to-r from-pink-500 to-rose-500" 
-              asChild
-            >
-              <Link href="/">Back to Home</Link>
-            </Button>
+            !isAuthPage && (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" className="w-full justify-start">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button
+                    className="w-full justify-start bg-gradient-to-r from-pink-500 to-rose-500"
+                  >
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )
           )}
         </div>
       </motion.div>
