@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api";
 import { useParams } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 
 interface Event {
   id: string;
@@ -32,6 +33,7 @@ interface EventResponse {
 }
 
 export default function EventViewPage() {
+  const router = useRouter();
   const { eventId } = useParams(); // Dynamically get eventId
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,9 +47,13 @@ export default function EventViewPage() {
           method: "GET",
           credentials: "include",
         });
-        if (response.data && response.data.success) {
+        if ((response.status==200 || response.status==201) && response.data) {
           setEvent(response.data.event);
-        } else {
+        } else if(response.status==401){
+            router.push('/login');
+        }
+
+        else {
           setError("Failed to fetch event details");
         }
       } catch (err) {
