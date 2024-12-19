@@ -3,8 +3,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from "@/lib/api";
-import { cookies } from 'next/headers';
-
 
 interface AuthContextType {
   user: any | null;
@@ -22,17 +20,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check for stored token on mount
-    const token = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith('session='))
-    ?.split('=')[1];
+    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    console.log(userData);
-    if (token) {
+    
+    if (token && userData) {
       setUser(JSON.parse(userData));
-      setIsAuthenticated(true);
+     
+    } else {
+      setUser(null)
     }
-  }, [isAuthenticated]);
+    setIsAuthenticated(!!user);
+  }, []);
 
   const login = async (token: string, userData: any) => {
     // First store user data
@@ -60,8 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } 
     } catch (error) {
       console.error('Failed to create session:', error);
-      // Clean up if session creation fails
-      localStorage.removeItem('user');
       setUser(null);
       throw error; // Re-throw to handle in login form
     }
@@ -74,8 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         credentials: 'include',
       });
-      
-        localStorage.removeItem('user');
         setUser(null);
         setIsAuthenticated(false);
        
