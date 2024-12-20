@@ -3,16 +3,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Gift, User2, Wallet } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
-import { apiClient } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { eventApi } from "@/lib/endpoints";
 
-// Define the interface for the expected response data
-interface EventResponse {
-  eventId: string;
-  response:string;
-  success:Boolean;
-  // Add other properties as needed
-}
 
 export function CreateEventForm() {
   const router = useRouter();
@@ -28,22 +21,16 @@ export function CreateEventForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await apiClient('/events/addevent', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      });
-
+      const response = await eventApi.create(formData);
+      console.log("response", response);
       // Assert the type of response.data
-      const data = response.data as EventResponse;
+      // const data = response.data as EventResponse;
 
-      if (response.status === 200 || response.status === 201) {
-        console.log('Event created successfully:', data);
-        router.push(`/dashboard/events/${data.eventId}`);
-      } 
-      else if (response.status === 401) {
-        router.push('/login');
+      if (response.eventId) {
+        console.log('Event created successfully:');
+        router.push(`/dashboard/events/${response.eventId}`);
       } else {
-        console.error('Failed to create event:', response.error);
+        console.error('Failed to create event:', response.message);
       }
     } catch (error) {
       console.error('Error creating event:', error);

@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { LogIn, Mail, Lock } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api";
 import { Alert } from "../ui/alert";
 import { LoadingButton } from "../ui/loading-button";
 
@@ -32,13 +30,6 @@ export function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const verificationMessage = params.get('message');
-    if (verificationMessage) {
-      setError('Verification Email sent ! Check your email before logging in.');
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,20 +37,21 @@ export function LoginForm() {
     setLoading(true);
     
     try {
+      // const response = await api.post<LoginResponse>('/auth/login', formData);
 
-      const response = await apiClient<LoginResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      });
-  
-      if (response.data) {
-        await login(response.data.token, response.data.user);
-        router.push('/dashboard');
-      } else {
-        setError(response.error || 'An error occurred');
-      }
+      // console.log(response)
+      // if ( response.token) {
+       
+      //   await login(response.token, response.user);
+      //   router.push('/dashboard');
+      // } else {
+      //   setError(response.message || 'Login failed');
+      // }
+      await login(formData.email, formData.password);
+      router.push('/dashboard');
     } catch (error) {
-      setError('Failed to login. Please try again.');
+      console.log(error);
+      setError('Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }

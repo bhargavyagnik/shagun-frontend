@@ -1,108 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { User2, IndianRupee, Share2, Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ContributionsTable } from "./contributions-table";
-import { apiClient } from "@/lib/api";
-
-interface Contribution {
-  id: string;
-  name:string;
-  amount: number;
-  relation: "bride" | "groom";
-  message?: string;
-  createdAt: {
-    _seconds: number;
-    _nanoseconds: number;
-  };
-}
-
-interface ContributionsResponse {
-  contributions: Contribution[];
-}
-
-interface Event {
-  id: string;
-  occasionType: string;
-  brideName: string;
-  groomName: string;
-  eventDate: string;
-  upiId: string;
-  userId: string;
-  createdAt: {
-    _seconds: number;
-    _nanoseconds: number;
-  };
-  updatedAt: {
-    _seconds: number;
-    _nanoseconds: number;
-  };
-}
+import { Event, Contribution } from "@/lib/types";
 
 export function EventDetails({ 
-  eventId,
-  event 
+  event,
+  contributions 
 }: { 
-  eventId: string;
   event: Event;
+  contributions: Contribution[];
 }) {
-  const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchContributions() {
-      try {
-        setIsLoading(true);
-        console.log(eventId);
-        const response = await apiClient<ContributionsResponse>(`/contributions/get/${eventId}`, {
-          method: "GET",
-          credentials: "include"
-        });
-        console.log(response);
-        if (response.data) {
-          setContributions(response.data.contributions);
-        } else {
-          setError("Failed to fetch contributions");
-        }
-      } catch (error) {
-        setError("Error fetching contributions");
-        console.error("Error fetching contributions:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchContributions();
-  }, []);
+  // Calculate totals
   const totalAmount = contributions.reduce((sum, c) => sum + c.amount, 0);
   const bridesSideAmount = contributions
     .filter(c => c.relation === "bride")
     .reduce((sum, c) => sum + c.amount, 0);
   const groomsSideAmount = contributions
-   .filter(c => c.relation === "groom")
+    .filter(c => c.relation === "groom")
     .reduce((sum, c) => sum + c.amount, 0);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
+      {/* Event Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">
           {event.brideName} & {event.groomName}
@@ -116,6 +38,7 @@ export function EventDetails({
         </div>
       </div>
 
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SummaryCard
           label="Total Collection"
@@ -137,6 +60,7 @@ export function EventDetails({
         />
       </div>
 
+      {/* Action Buttons */}
       <div className="flex gap-4">
         <Button variant="outline">
           <Share2 className="h-4 w-4 mr-2" />
@@ -148,6 +72,7 @@ export function EventDetails({
         </Button>
       </div>
 
+      {/* Contributions Table */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Contributions</h2>
         <ContributionsTable contributions={contributions} />

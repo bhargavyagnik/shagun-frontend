@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { UserPlus, Mail, Lock, User } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
 import Link from "next/link";
-import { apiClient } from "@/lib/api";
 import { Alert } from "../ui/alert";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SignupResponse {
   token: string;
@@ -28,7 +28,7 @@ export function SignupForm() {
   const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
+  const { signup } = useAuth();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
@@ -37,19 +37,8 @@ export function SignupForm() {
     }
 
     try {
-      const response = await apiClient<SignupResponse>('/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.data) {
-        router.push('/login?message=verification_email_sent');
-      } else {
-        setError(response.error || 'An error occurred');
-      }
+      await signup(formData.name,formData.email, formData.password);
+      router.push('/login?message=verification_email_sent');
     } catch (error) {
       setError('Failed to login. Please try again.');
     } finally {

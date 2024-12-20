@@ -29,7 +29,7 @@ export function SiteHeader() {
   const handleLogout = async () => {
     await logout();
     setIsMobileMenuOpen(false); // Close mobile menu
-    router.refresh(); // Force refresh the page
+    router.push('/'); // Force refresh the page
   };
   // Determine current route type
   const isAuthPage = pathname === "/login" || pathname === "/signup";
