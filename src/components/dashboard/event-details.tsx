@@ -14,6 +14,8 @@ export function EventDetails({
   contributions: Contribution[];
 }) {
   // Calculate totals
+  console.log(contributions);
+  console.log(event);
   const totalAmount = contributions.reduce((sum, c) => sum + c.amount, 0);
   const bridesSideAmount = contributions
     .filter(c => c.relation === "bride")

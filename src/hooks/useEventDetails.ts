@@ -19,8 +19,8 @@ export function useEventDetails(eventId: string) {
   });
 
   return {
-    event: eventQuery.data?.event,
-    contributions: contributionsQuery.data?.contributions || [],
+    event: eventQuery.data?.data,
+    contributions: contributionsQuery.data?.data || [],
     isLoading: eventQuery.isLoading || contributionsQuery.isLoading,
     error: eventQuery.error || contributionsQuery.error,
   };

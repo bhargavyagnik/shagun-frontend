@@ -26,11 +26,11 @@ export function CreateEventForm() {
       // Assert the type of response.data
       // const data = response.data as EventResponse;
 
-      if (response.eventId) {
+      if (response.success) {
         console.log('Event created successfully:');
-        router.push(`/dashboard/events/${response.eventId}`);
+        router.push(`/dashboard/events/${response.data.eventId}`);
       } else {
-        console.error('Failed to create event:', response.message);
+        console.error('Failed to create event:', response.data.message);
       }
     } catch (error) {
       console.error('Error creating event:', error);

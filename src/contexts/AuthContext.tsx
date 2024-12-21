@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (name: string, email: string, password: string) => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      router.push('/login');
     } catch (error: any) {
       console.error('Signup failed:', error);
       throw new Error(getAuthErrorMessage(error.code));

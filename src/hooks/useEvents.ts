@@ -21,7 +21,7 @@ export function useEvents(options: UseEventsOptions = {}) {
   });
 
   const filteredEvents = useMemo(() => {
-    const events = data?.events || [];
+    const events = data?.data || [];
     return events
       .filter((event: Event) => 
         event.brideName.toLowerCase().includes(searchQuery.toLowerCase()) ||

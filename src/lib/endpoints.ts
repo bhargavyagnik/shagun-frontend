@@ -28,7 +28,7 @@ export const eventApi = {
 
 export const contributionApi = {
   getAll: (eventId: string) => {
-    return api.get<Contribution[]>(`/contributions/get/${eventId}`);
+    return api.get<ApiResponse<Contribution[]>>(`/contributions/get/${eventId}`);
   },
     
   

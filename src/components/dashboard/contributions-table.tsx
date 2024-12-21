@@ -37,8 +37,8 @@ export function ContributionsTable({ contributions }: { contributions: Contribut
       return matchesSearch && matchesRelation;
     })
     .sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
+      const aValue = sortField.includes('.') ? a.createdAt._seconds : a[sortField as keyof Contribution];
+      const bValue = sortField.includes('.') ? b.createdAt._seconds : b[sortField as keyof Contribution];
       return sortDirection === "asc" 
         ? String(aValue).localeCompare(String(bValue))
         : String(bValue).localeCompare(String(aValue));

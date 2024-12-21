@@ -1,6 +1,7 @@
-import { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
+import { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import { auth } from './firebase';
+import axiosRetry from 'axios-retry';
 
 // Add logger utility
 const logger = {
@@ -18,6 +19,11 @@ const logger = {
 // Add at the top of the file
 const API_TIMEOUT = 15000; // 15 seconds
 
+// Add at the top of the file
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 export class ApiClient {
   private client: AxiosInstance;
   private isRefreshing = false;
@@ -33,11 +39,12 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
-      // Add request retry logic
-      retry: 3,
-      retryDelay: (retryCount) => {
-        return retryCount * 1000; // time interval between retries
-      }
+    });
+
+    // Configure retry logic
+    axiosRetry(this.client, { 
+      retries: 3,
+      retryDelay: (retryCount) => retryCount * 1000
     });
 
     // Add logging to response interceptor
@@ -52,7 +59,9 @@ export class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config;
         
-        if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+        if (error.response?.status === 401 && originalRequest && !(originalRequest as ExtendedAxiosRequestConfig)._retry) {
+          const originalReq = originalRequest as ExtendedAxiosRequestConfig;
+          originalReq._retry = true;
           logger.warn('Token expired, attempting refresh', {
             url: originalRequest.url
           });
@@ -71,7 +80,6 @@ export class ApiClient {
             }
           }
 
-          originalRequest._retry = true;
           this.isRefreshing = true;
 
           try {

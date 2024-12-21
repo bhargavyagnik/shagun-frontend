@@ -3,8 +3,7 @@
 import { motion } from "framer-motion";
 import { GradientText } from "@/components/ui/gradient-text";
 import { EventCard } from "@/components/dashboard/event-card";
-import { mockEvents } from "@/lib/mock-data";
-import { Plus, Calendar, Search, Filter } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -28,7 +27,6 @@ export default function DashboardPage() {
   const {
     events,
     isLoading: eventsLoading,
-    error,
     searchQuery,
     setSearchQuery,
     sortBy,
@@ -98,7 +96,7 @@ export default function DashboardPage() {
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => (
+          {events.map((event: any) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, y: 20 }}
