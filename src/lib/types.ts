@@ -35,3 +35,15 @@ export interface ApiResponse<T> {
       _nanoseconds: number;
     };
   }
+
+  export interface ContributionData{
+    eventId: string;
+    name: string;
+    amount: number;
+    relation: 'bride' | 'groom';
+    message?: string;
+    createdAt: {
+      _seconds: number;
+      _nanoseconds: number;
+    };
+  }

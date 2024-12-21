@@ -1,5 +1,5 @@
 import { api } from './api';
-import { ApiResponse, Event, Contribution } from './types';
+import { ApiResponse, Event, Contribution, ContributionData } from './types';
 
 export const eventApi = {
   getAll: () => {
@@ -8,6 +8,10 @@ export const eventApi = {
   
   getOne: (id: string) => {
     return api.get<ApiResponse<Event>>(`/events/event/${id}`);
+  },
+
+  getPublic: (id: string) => {
+    return api.get<ApiResponse<any>>(`/events/public/${id}`);
   },
     
   
@@ -24,11 +28,11 @@ export const eventApi = {
 
 export const contributionApi = {
   getAll: (eventId: string) => {
-    return api.get<ApiResponse<Contribution[]>>(`/contributions/get/${eventId}`);
+    return api.get<Contribution[]>(`/contributions/get/${eventId}`);
   },
     
   
-  create: (eventId: string, data: Partial<Contribution>) => {
-    return api.post<ApiResponse<void>>(`/contributions/${eventId}`, data);
+  create: ( data: Partial<ContributionData>) => {
+    return api.post<ApiResponse<void>>(`/contributions/add`, data);
   }
 };

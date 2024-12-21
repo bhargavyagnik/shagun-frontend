@@ -10,15 +10,6 @@ import { useRouter } from "next/navigation";
 import { Alert } from "../ui/alert";
 import { LoadingButton } from "../ui/loading-button";
 
-interface LoginResponse {
-  token: string;
-  user: {
-    uid: string;
-    name: string;
-    email: string;
-  };
-  message: string;
-}
 export function LoginForm() {
   const [formData, setFormData] = useState({
     email: "",
@@ -37,16 +28,6 @@ export function LoginForm() {
     setLoading(true);
     
     try {
-      // const response = await api.post<LoginResponse>('/auth/login', formData);
-
-      // console.log(response)
-      // if ( response.token) {
-       
-      //   await login(response.token, response.user);
-      //   router.push('/dashboard');
-      // } else {
-      //   setError(response.message || 'Login failed');
-      // }
       await login(formData.email, formData.password);
       router.push('/dashboard');
     } catch (error) {

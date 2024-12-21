@@ -4,6 +4,8 @@ import { Inter } from "next/font/google";
 import "@/app/globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/lib/providers";
+import { Toaster } from "sonner";
+import { ErrorBoundary } from '@/components/error-boundary';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,14 +28,17 @@ export default function RootLayout({
         )}
       >
         <Providers>
-        <div className="relative flex min-h-screen flex-col">
-          <SiteHeader />
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8">
-              {children}
+        <ErrorBoundary>
+          <div className="relative flex min-h-screen flex-col">
+            <SiteHeader />
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8">
+                {children}
+              </div>
             </div>
           </div>
-        </div>
+        </ErrorBoundary>
+        <Toaster position="top-center" richColors />
         </Providers>
       </body>
     </html>

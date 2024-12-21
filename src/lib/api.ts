@@ -15,6 +15,9 @@ const logger = {
   }
 };
 
+// Add at the top of the file
+const API_TIMEOUT = 15000; // 15 seconds
+
 export class ApiClient {
   private client: AxiosInstance;
   private isRefreshing = false;
@@ -25,10 +28,16 @@ export class ApiClient {
   
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+      baseURL: process.env.NEXT_PUBLIC_API_URL,
+      timeout: API_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
       },
+      // Add request retry logic
+      retry: 3,
+      retryDelay: (retryCount) => {
+        return retryCount * 1000; // time interval between retries
+      }
     });
 
     // Add logging to response interceptor
@@ -96,6 +105,12 @@ export class ApiClient {
     this.client.interceptors.request.use(async (config) => {
       logger.info(`Request started: ${config.method?.toUpperCase()} ${config.url}`);
       
+      // Skip auth check for public routes
+      if (this.isPublicRoute(config.url || '')) {
+        return config;
+      }
+
+      // Original auth logic
       if (!auth.currentUser) {
         logger.error('Request attempted without authentication');
         throw new Error('User not authenticated');
@@ -161,29 +176,61 @@ export class ApiClient {
     this.failedQueue = [];
   }
 
-  // Add logging to HTTP methods
+  private isPublicRoute(url: string): boolean {
+    // Add any public routes that don't need authentication
+    const publicRoutes = ['/contributions/add', '/events/public'];
+    return publicRoutes.some(route => url.includes(route));
+  }
+
+  // Add error handling wrapper
+  private async handleRequest<T>(request: Promise<AxiosResponse<T>>): Promise<T> {
+    try {
+      const response = await request;
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        // Handle network errors
+        if (!error.response) {
+          throw new Error('Network error occurred. Please check your connection.');
+        }
+        
+        // Handle specific HTTP errors
+        switch (error.response.status) {
+          case 400:
+            throw new Error('Invalid request. Please check your input.');
+          case 401:
+            throw new Error('Authentication required. Please log in.');
+          case 403:
+            throw new Error('Access denied. You do not have permission.');
+          case 404:
+            throw new Error('Resource not found.');
+          case 429:
+            throw new Error('Too many requests. Please try again later.');
+          case 500:
+            throw new Error('Server error. Please try again later.');
+          default:
+            throw new Error('An unexpected error occurred.');
+        }
+      }
+      throw error;
+    }
+  }
+
+  // Update HTTP methods to use error handling wrapper
   async get<T>(endpoint: string): Promise<T> {
-    logger.info(`GET request to ${endpoint}`);
-    const response: AxiosResponse<T> = await this.client.get(endpoint);
-    return response.data;
+    return this.handleRequest(this.client.get(endpoint));
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
-    logger.info(`POST request to ${endpoint}`, { dataSize: data ? Object.keys(data).length : 0 });
-    const response: AxiosResponse<T> = await this.client.post(endpoint, data);
-    return response.data;
+    return this.handleRequest(this.client.post(endpoint, data));
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
-    logger.info(`PUT request to ${endpoint}`, { dataSize: data ? Object.keys(data).length : 0 });
-    const response: AxiosResponse<T> = await this.client.put(endpoint, data);
-    return response.data;
+    return this.handleRequest(this.client.put(endpoint, data));
   }
 
   async delete<T>(endpoint: string): Promise<T> {
-    logger.info(`DELETE request to ${endpoint}`);
-    const response: AxiosResponse<T> = await this.client.delete(endpoint);
-    return response.data;
+    return this.handleRequest(this.client.delete(endpoint));
   }
 }
 
