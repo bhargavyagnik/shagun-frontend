@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ContributionsTable } from "./contributions-table";
 import { Event, Contribution } from "@/lib/types";
+import QRShareDialog from "./qr-share-overlay";
 
 export function EventDetails({ 
   event,
@@ -68,6 +69,7 @@ export function EventDetails({
           <Share2 className="h-4 w-4 mr-2" />
           Share Collection Page
         </Button>
+        <QRShareDialog eventId={event.id} />
         <Button variant="outline">
           <Download className="h-4 w-4 mr-2" />
           Export Data
