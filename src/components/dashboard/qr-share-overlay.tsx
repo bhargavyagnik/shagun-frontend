@@ -22,11 +22,11 @@ const QRShareDialog = ({ event }: { event: Event }) => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const modalRef = useRef(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const shareUrl = `https://shagun.app/event/${event.id}`;
   
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: { target: any; }) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
         setIsOpen(false);
       }
