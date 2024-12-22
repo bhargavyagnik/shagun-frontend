@@ -14,7 +14,6 @@ import { Heart, Send, User2, Wallet, Share } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
 import { contributionApi } from "@/lib/endpoints";
 import { toast } from "sonner";
-import Link from "next/link";
 
 export function GiftContributionForm({ eventDetails, eventId }: { eventDetails: any, eventId: string }) {
   const [formData, setFormData] = useState({
@@ -42,7 +41,8 @@ export function GiftContributionForm({ eventDetails, eventId }: { eventDetails: 
         am: formData.amount,
         cu: 'INR',
         tn: `Shagun for ${eventDetails.brideName}'s wedding`,
-        tr: txnId
+        tr: txnId,
+        mode: '00'
       });
 
       const upiURL = `upi://pay?${upiParams.toString()}`;
@@ -54,85 +54,107 @@ export function GiftContributionForm({ eventDetails, eventId }: { eventDetails: 
         timestamp: Date.now()
       }));
 
-      // Check if device is iOS
+      // Check device type
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      // Check if device is Android
       const isAndroid = /Android/i.test(navigator.userAgent);
 
       if (isIOS || isAndroid) {
-        if (isIOS) {
-          // For iOS, we need to handle both newer and older devices
-          const gpayURL = `gpay://upi/pay?${upiParams.toString()}`;
-          const phonepeURL = `phonepe://pay?${upiParams.toString()}`;
-          const paytmURL = `paytmmp://pay?${upiParams.toString()}`;
-
-          // Create fallback links for different UPI apps
-          const fallbackDiv = document.createElement('div');
-          fallbackDiv.innerHTML = `
-            <p style="margin-bottom: 20px;">Choose your UPI app:</p>
-            <a href="${gpayURL}" style="display: block; margin: 10px 0;">Open in Google Pay</a>
-            <a href="${phonepeURL}" style="display: block; margin: 10px 0;">Open in PhonePe</a>
-            <a href="${paytmURL}" style="display: block; margin: 10px 0;">Open in Paytm</a>
-            <a href="${upiURL}" style="display: block; margin: 10px 0;">Open in Other UPI Apps</a>
-          `;
-
-          // Show a modal with UPI app options
-          const modal = document.createElement('div');
-          modal.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-          `;
-          modal.appendChild(fallbackDiv);
-
-          const overlay = document.createElement('div');
-          overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-          `;
-
-          document.body.appendChild(overlay);
-          document.body.appendChild(modal);
-
-          // Clean up modal when user returns
-          window.addEventListener('focus', () => {
-            modal.remove();
-            overlay.remove();
-            setShowConfirmation(true);
-          }, { once: true });
-        } else {
-          // Android handling
-          if (window.webUPI) {
-            try {
-              await window.webUPI.enable();
-              await window.webUPI.sendPayment(upiURL);
-              setShowConfirmation(true);
-              return;
-            } catch (webUPIError) {
-              console.log('WebUPI failed, falling back to URL scheme', webUPIError);
-            }
+        const paymentApps = [
+          { 
+            name: 'Google Pay',
+            url: `gpay://upi/pay?${upiParams.toString()}`,
+            universalLink: `https://pay.google.com/pay?${upiParams.toString()}`,
+            androidPackage: 'com.google.android.apps.nbu.paisa.user',
+            icon: '💳'
+          },
+          { 
+            name: 'PhonePe',
+            url: `phonepe://pay?${upiParams.toString()}`,
+            universalLink: `https://phon.pe/ru_${btoa(upiURL)}`,
+            androidPackage: 'com.phonepe.app',
+            icon: '📱'
+          },
+          { 
+            name: 'Paytm',
+            url: `paytmmp://pay?${upiParams.toString()}`,
+            universalLink: `https://paytm.com/upi?${upiParams.toString()}`,
+            androidPackage: 'net.one97.paytm',
+            icon: '💰'
+          },
+          { 
+            name: 'Other UPI Apps',
+            url: upiURL,
+            universalLink: upiURL,
+            androidPackage: '',
+            icon: '🔄'
           }
+        ];
 
-          // Fallback to URL scheme for Android
-          const link = document.createElement('a');
-          link.href = upiURL;
-          link.click();
+        const handleAppClick = (app: typeof paymentApps[0]) => {
+          const now = Date.now();
           
-          window.addEventListener('focus', () => {
-            setShowConfirmation(true);
-          }, { once: true });
-        }
+          if (isAndroid) {
+            // For Android, try intent URL first
+            
+            if(app.androidPackage != ''){
+              const intentUrl = `intent://${app.url.replace('://', '/')}#Intent;scheme=${app.url.split('://')[0]};package=${app.androidPackage};end`;
+              window.location.href = intentUrl;
+            }
+            
+            // Fallback to direct URL after a short delay
+            setTimeout(() => {
+              if (Date.now() - now < 1500) {
+                window.location.href = app.url;
+              }
+            }, 1000);
+          } else {
+            // iOS handling remains the same
+            window.location.href = app.url;
+            
+            setTimeout(() => {
+              if (Date.now() - now < 1500) {
+                window.location.href = app.universalLink;
+              }
+            }, 1000);
+          }
+        };
+
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+          <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-white rounded-2xl p-6 w-[90%] max-w-sm">
+              <h3 class="text-lg font-semibold text-center mb-4">Choose Payment App</h3>
+              <div class="space-y-3">
+                ${paymentApps.map(app => `
+                  <button 
+                    class="w-full flex items-center gap-3 p-3 rounded-xl border hover:bg-gray-50 active:bg-gray-100 transition-all"
+                    data-app='${JSON.stringify(app)}'
+                  >
+                    <span class="text-2xl">${app.icon}</span>
+                    <span class="font-medium">${app.name}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Add click handlers
+        modal.querySelectorAll('button').forEach(button => {
+          button.addEventListener('click', () => {
+            const app = JSON.parse(button.dataset.app || '{}');
+            handleAppClick(app);
+          });
+        });
+
+        // Clean up modal when user returns
+        window.addEventListener('focus', () => {
+          modal.remove();
+          setShowConfirmation(true);
+        }, { once: true });
+
       } else {
         toast.error('Please use a mobile device for UPI payments');
       }
