@@ -1,12 +1,3 @@
-declare global {
-  interface Window {
-    webUPI?: {
-      enable: () => Promise<void>;
-      sendPayment: (upiURI: string) => Promise<void>;
-    }
-  }
-}
-
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -14,278 +5,244 @@ import { Heart, Send, User2, Wallet, Share } from "lucide-react";
 import { GradientText } from "@/components/ui/gradient-text";
 import { contributionApi } from "@/lib/endpoints";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { QRCodeCanvas } from "qrcode.react";
+
 
 export function GiftContributionForm({ eventDetails, eventId }: { eventDetails: any, eventId: string }) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     amount: "",
     relation: "bride", // or "groom"
     message: "",
+    paymentMethod: "cash",
   });
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [qrValue, setQrValue] = useState("");
+
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [transactionId, setTransactionId] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
+    
 
     try {
       const txnId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       setTransactionId(txnId);
+      setIsLoading(true);
 
-      const upiParams = new URLSearchParams({
-        pa: eventDetails.upiId,
-        pn: eventDetails.brideName,
-        am: formData.amount,
-        cu: 'INR',
-        tn: `Shagun for ${eventDetails.brideName}'s wedding`,
-        tr: txnId,
-        mode: '00'
-      });
-
-      const upiURL = `upi://pay?${upiParams.toString()}`;
-
-      // Store pending transaction in localStorage
-      localStorage.setItem('pendingUpiPayment', JSON.stringify({
-        txnId,
-        amount: formData.amount,
-        timestamp: Date.now()
-      }));
-
-      // Check device type
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isAndroid = /Android/i.test(navigator.userAgent);
-
-      if (isIOS || isAndroid) {
-        const paymentApps = [
-          { 
-            name: 'Google Pay',
-            url: `gpay://upi/pay?${upiParams.toString()}`,
-            universalLink: `https://pay.google.com/pay?${upiParams.toString()}`,
-            androidPackage: 'com.google.android.apps.nbu.paisa.user',
-            icon: '💳'
-          },
-          { 
-            name: 'PhonePe',
-            url: `phonepe://pay?${upiParams.toString()}`,
-            universalLink: `https://phon.pe/ru_${btoa(upiURL)}`,
-            androidPackage: 'com.phonepe.app',
-            icon: '📱'
-          },
-          { 
-            name: 'Paytm',
-            url: `paytmmp://pay?${upiParams.toString()}`,
-            universalLink: `https://paytm.com/upi?${upiParams.toString()}`,
-            androidPackage: 'net.one97.paytm',
-            icon: '💰'
-          },
-          { 
-            name: 'Other UPI Apps',
-            url: upiURL,
-            universalLink: upiURL,
-            androidPackage: '',
-            icon: '🔄'
-          }
-        ];
-
-        const handleAppClick = (app: typeof paymentApps[0]) => {
-          const now = Date.now();
-          
-          if (isAndroid) {
-            // For Android, try intent URL first
-            
-            if(app.androidPackage != ''){
-              const intentUrl = `intent://${app.url.replace('://', '/')}#Intent;scheme=${app.url.split('://')[0]};package=${app.androidPackage};end`;
-              window.location.href = intentUrl;
-            }
-            
-            // Fallback to direct URL after a short delay
-            setTimeout(() => {
-              if (Date.now() - now < 1500) {
-                window.location.href = app.url;
-              }
-            }, 1000);
-          } else {
-            // iOS handling remains the same
-            window.location.href = app.url;
-            
-            setTimeout(() => {
-              if (Date.now() - now < 1500) {
-                window.location.href = app.universalLink;
-              }
-            }, 1000);
-          }
-        };
-
-        const modal = document.createElement('div');
-        modal.innerHTML = `
-          <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div class="bg-white rounded-2xl p-6 w-[90%] max-w-sm">
-              <h3 class="text-lg font-semibold text-center mb-4">Choose Payment App</h3>
-              <div class="space-y-3">
-                ${paymentApps.map(app => `
-                  <button 
-                    class="w-full flex items-center gap-3 p-3 rounded-xl border hover:bg-gray-50 active:bg-gray-100 transition-all"
-                    data-app='${JSON.stringify(app)}'
-                  >
-                    <span class="text-2xl">${app.icon}</span>
-                    <span class="font-medium">${app.name}</span>
-                  </button>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        // Add click handlers
-        modal.querySelectorAll('button').forEach(button => {
-          button.addEventListener('click', () => {
-            const app = JSON.parse(button.dataset.app || '{}');
-            handleAppClick(app);
-          });
+      if (formData.paymentMethod === "upi") {
+        // Generate UPI payment link
+        const upiParams = new URLSearchParams({
+          pa: eventDetails.upiId,
+          pn: eventDetails.brideName,
+          tr: txnId,
+          tn: `Shagun for ${eventDetails.brideName}'s wedding`,
+          am: formData.amount,
+          cu: "INR",
         });
-
-        // Clean up modal when user returns
-        window.addEventListener('focus', () => {
-          modal.remove();
-          setShowConfirmation(true);
-        }, { once: true });
-
-      } else {
-        toast.error('Please use a mobile device for UPI payments');
+        const upiURL = `upi://pay?${upiParams.toString()}`;
+        setIsLoading(false);
+        setQrValue(upiURL);
+        setShowQR(true);
       }
+      else {
+        await contributionApi.create({
+          eventId,
+          name: formData.name,
+          amount: Number(formData.amount),
+          relation: formData.relation as "bride" | "groom",
+          message: formData.message
+        });
+        setIsLoading(false);
+
+        setShowConfirmation(true);
+      }
+
+      
     } catch (error) {
       console.error(error);
       toast.error('Failed to initiate payment');
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
+  const QRModal = () => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-2xl p-6 w-[90%] max-w-sm"
+      >
+        <h3 className="text-lg font-semibold text-center mb-4">Scan QR Code to Pay</h3>
+        <div className="flex justify-center mb-4">
+          <QRCodeCanvas 
+            id="qr-code"
+            value={qrValue}
+            size={200}
+            level="Q"
+            includeMargin
+            />
+        </div>
+        <p className="text-sm text-center mb-4 text-gray-600">
+          Scan this QR code with any UPI app to send shagun
+        </p>
+        <div className="flex gap-4 justify-end">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowQR(false)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={async () => {
+              await contributionApi.create({
+                eventId,
+                name: formData.name,
+                amount: Number(formData.amount),
+                relation: formData.relation as "bride" | "groom",
+                message: formData.message
+              });
+              toast.success("UPI contribution recorded successfully!");
+              setShowQR(false);
+              setFormData({
+                name: "",
+                amount: "",
+                relation: "bride",
+                message: "",
+                paymentMethod: "upi"
+              });
+              router.refresh();
+            }}
+          >
+            Done
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
 
   const confirmPayment = async (success: boolean) => {
     try {
       if (success) {
-        const response = await contributionApi.create({
-          eventId: eventId,
-          name: formData.name,
-          amount: Number(formData.amount),
-          relation: formData.relation as 'bride' | 'groom',
-          message: formData.message
+        setFormData({
+          name: "",
+          amount: "",
+          relation: "bride",
+          message: "",
+          paymentMethod: "cash"
         });
-        
-        if (response.success) {
-          setShowThankYou(true);
-        }
+        router.refresh();
       }
     } catch (error) {
       toast.error('Failed to record contribution');
     } finally {
       setShowConfirmation(false);
-      setIsProcessing(false);
-      localStorage.removeItem('pendingUpiPayment');
+      setIsLoading(false);
+      
     }
   };
 
-  if (showThankYou) {
-    return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-xl mx-auto">
-          {/* Logo */}
-          {/* <div className="mb-8">
-            <Link href="/" className="text-2xl font-bold text-pink-500">
-              Shagun
-            </Link>
-          </div> */}
+  // if (showThankYou) {
+  //   return (
+  //     <div className="fixed inset-0 bg-background flex items-center justify-center p-4">
+  //       <div className="w-full max-w-xl mx-auto">
+  //         {/* Logo */}
+  //         {/* <div className="mb-8">
+  //           <Link href="/" className="text-2xl font-bold text-pink-500">
+  //             Shagun
+  //           </Link>
+  //         </div> */}
 
-          {/* Main Content */}
-          <motion.div 
-            className="space-y-8 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* Header */}
-            <div className="space-y-4">
-              {/* <h2 className="text-xl text-muted-foreground">
-                शुभ आशीर्वाद 🙏
-              </h2> */}
-              <h1 className="text-4xl font-bold text-pink-500">
-                <GradientText>Thank You for Your Blessings</GradientText>
-              </h1>
-            </div>
+  //         {/* Main Content */}
+  //         <motion.div 
+  //           className="space-y-8 text-center"
+  //           initial={{ opacity: 0, y: 20 }}
+  //           animate={{ opacity: 1, y: 0 }}
+  //         >
+  //           {/* Header */}
+  //           <div className="space-y-4">
+  //             {/* <h2 className="text-xl text-muted-foreground">
+  //               शुभ आशीर्वाद 🙏
+  //             </h2> */}
+  //             <h1 className="text-4xl font-bold text-pink-500">
+  //               <GradientText>Thank You for Your Blessings</GradientText>
+  //             </h1>
+  //           </div>
 
-            {/* Couple Names */}
-            <div className="space-y-1">
-              <p className="text-muted-foreground">
-                Your blessings for
-              </p>
-              <p className="text-xl font-medium">
-                {eventDetails.brideName} & {eventDetails.groomName}
-              </p>
-            </div>
+  //           {/* Couple Names */}
+  //           <div className="space-y-1">
+  //             <p className="text-muted-foreground">
+  //               Your blessings for
+  //             </p>
+  //             <p className="text-xl font-medium">
+  //               {eventDetails.brideName} & {eventDetails.groomName}
+  //             </p>
+  //           </div>
 
-            {/* Amount Card */}
-            <div className="bg-pink-50 rounded-lg p-6 max-w-sm mx-auto">
-              <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">
-                Shagun Amount
-              </p>
-              <p className="text-4xl font-bold text-pink-500">
-                ₹{Number(formData.amount).toLocaleString('en-IN')}
-              </p>
-            </div>
+  //           {/* Amount Card */}
+  //           <div className="bg-pink-50 rounded-lg p-6 max-w-sm mx-auto">
+  //             <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">
+  //               Shagun Amount
+  //             </p>
+  //             <p className="text-4xl font-bold text-pink-500">
+  //               ₹{Number(formData.amount).toLocaleString('en-IN')}
+  //             </p>
+  //           </div>
 
-            {/* Message */}
-            {formData.message && (
-              <div className="max-w-md mx-auto space-y-4">
-                <p className="italic text-lg text-muted-foreground">
-                  "{formData.message}"
-                </p>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    With heartfelt blessings from,
-                  </p>
-                  <p className="font-medium mt-1">
-                    {formData.name}
-                  </p>
-                </div>
-              </div>
-            )}
+  //           {/* Message */}
+  //           {formData.message && (
+  //             <div className="max-w-md mx-auto space-y-4">
+  //               <p className="italic text-lg text-muted-foreground">
+  //                 "{formData.message}"
+  //               </p>
+  //               <div>
+  //                 <p className="text-sm text-muted-foreground">
+  //                   With heartfelt blessings from,
+  //                 </p>
+  //                 <p className="font-medium mt-1">
+  //                   {formData.name}
+  //                 </p>
+  //               </div>
+  //             </div>
+  //           )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 max-w-sm mx-auto pt-4">
-              <Button 
-                onClick={() => window.location.reload()}
-                className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
-              >
-                Return to Event
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: 'Wedding Shagun',
-                      text: `I just sent my blessings to ${eventDetails.brideName} & ${eventDetails.groomName}'s wedding!`
-                    }).catch(() => {
-                      toast.error("Couldn't share. Please try again.");
-                    });
-                  } else {
-                    toast.error("Sharing is not supported on this device");
-                  }
-                }}
-                className="flex-1"
-              >
-                <Share className="w-4 h-4 mr-2" />
-                Share
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+  //           {/* Action Buttons */}
+  //           <div className="flex gap-4 max-w-sm mx-auto pt-4">
+  //             <Button 
+  //               onClick={() => window.location.reload()}
+  //               className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
+  //             >
+  //               Return to Event
+  //             </Button>
+  //             <Button 
+  //               variant="outline"
+  //               onClick={() => {
+  //                 if (navigator.share) {
+  //                   navigator.share({
+  //                     title: 'Wedding Shagun',
+  //                     text: `I just sent my blessings to ${eventDetails.brideName} & ${eventDetails.groomName}'s wedding!`
+  //                   }).catch(() => {
+  //                     toast.error("Couldn't share. Please try again.");
+  //                   });
+  //                 } else {
+  //                   toast.error("Sharing is not supported on this device");
+  //                 }
+  //               }}
+  //               className="flex-1"
+  //             >
+  //               <Share className="w-4 h-4 mr-2" />
+  //               Share
+  //             </Button>
+  //           </div>
+  //         </motion.div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <motion.div
@@ -331,6 +288,32 @@ export function GiftContributionForm({ eventDetails, eventId }: { eventDetails: 
             required
           />
         </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Payment Method</label>
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant={formData.paymentMethod === "upi" ? "primary" : "outline"}
+              onClick={() => setFormData({ ...formData, paymentMethod: "upi" })}
+              className="flex-1"
+            >
+              <Wallet className="mr-2 h-4 w-4" />
+              UPI
+            </Button>
+            <Button
+              type="button"
+              variant={formData.paymentMethod === "cash" ? "primary" : "outline"}
+              onClick={() => setFormData({ ...formData, paymentMethod: "cash" })}
+              className="flex-1"
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Cash
+            </Button>
+          </div>
+        </div>
+
+
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Relation With</label>
@@ -384,26 +367,33 @@ export function GiftContributionForm({ eventDetails, eventId }: { eventDetails: 
         </Button>
       </form>
 
+      {showQR && <QRModal />}
+      
       {showConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Payment Confirmation</h3>
-            <p className="mb-6">Did you complete the payment successfully?</p>
+            <h3 className="text-lg font-semibold mb-4">Shagun Added Successfully!!</h3>
+            
             <div className="flex gap-4">
-              <Button 
-                variant="outline" 
-                onClick={() => confirmPayment(false)}
-              >
-                No, Failed
-              </Button>
+             
+            
               <Button 
                 onClick={() => confirmPayment(true)}
               >
-                Yes, Completed
+                Okay
               </Button>
             </div>
           </div>
         </div>
+      )}
+
+      {isLoading && (
+            <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">Processing your shagun...</p>
+              </div>
+            </div>
       )}
     </motion.div>
   );
